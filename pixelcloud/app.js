@@ -14,7 +14,9 @@ var pixelCloud = function (size) {
 			.data(data);
 
 
-		// bind elements to the data, add a transition for when the data changes
+		// bind elements to the data
+		// animate in the dots, makes inital the animate-in animation is a bit wierd
+		// then transition them into normal position
 		c.enter()
 			.append("circle")
 				.attr("r", function () {
