@@ -3,7 +3,7 @@
       <link href="../../lib/c3.css" rel="stylesheet" type="text/css">
       <link href="../../lib/bootstrap.min.css" rel="stylesheet" type="text/css">
    </head>
-   <body>
+   <body onload="checkFileAPI();">
       <div class="container">
          <div class="row">
             <div class="col-md-10 col-md-offset-1">
@@ -12,17 +12,19 @@ type= barchart
 value-bird= 60, 40, 100, 80, 120, 100
 value-monkey= 300, 200, 500, 400, 600, 500
 value-sheep= 600, 400, 1000, 800, 1200, 1000
+value-donkey= 6005, 405, 10050, 8005, 12500, 10500
 </textarea>
                <input class="btn btn-default label-success" type="submit" value="PLOT" onclick="loadData(0)">
                <input class="btn btn-default label-warning" type="submit" value="SAVE SVG">
-               <input class="btn btn-default label-info" type="submit" value="IMPORT CSV">
                <input class="btn btn-default" type="submit" value="Pie" onclick="loadData(1)">
                <input class="btn btn-default" type="submit" value="Bar" onclick="loadData(2)">
                <input class="btn btn-default" type="submit" value="Line" onclick="loadData(3)">
                <input class="btn btn-default" type="submit" value="Area" onclick="loadData(4)">
                <input class="btn btn-default" type="submit" value="Area Spline" onclick="loadData(5)">
                <input class="btn btn-default" type="submit" value="Donut" onclick="loadData(6)">
-               <input class="btn btn-default" type="submit" value="Scatter" onclick="loadData(7)">
+               <input class="btn btn-default" type="submit" value="Scatter" onclick="loadData(7)"><br>
+               <input class="btn btn-default label-info" type="file" onchange='readText(this)'>
+               
             </div>
          </div>
          <div class="row">
@@ -33,6 +35,55 @@ value-sheep= 600, 400, 1000, 800, 1200, 1000
       <script src="../../lib/jquery-1.11.2.min.js"></script>
       <script src="../../lib/c3.js"></script>
       <script>
+
+
+      //File read: http://stackoverflow.com/questions/13709482/how-to-read-text-file-in-javascript
+
+    var reader;
+    function checkFileAPI() {
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            reader = new FileReader();
+            return true; 
+        } else {
+            alert('The File APIs are not fully supported by your browser. Fallback required.');
+            return false;
+        }
+    }
+
+  
+    function readText(filePath) {
+        var output = "";
+        if(filePath.files && filePath.files[0]) {           
+            reader.onload = function (e) {
+                output = e.target.result;
+                displayContents(output);
+            };//end onload()
+            reader.readAsText(filePath.files[0]);
+        }
+        else if(ActiveXObject && filePath) {
+            try {
+                reader = new ActiveXObject("Scripting.FileSystemObject");
+                var file = reader.OpenTextFile(filePath, 1);
+                output = file.ReadAll();
+                file.Close();
+                displayContents(output);
+            } catch (e) {
+                if (e.number == -2146827859) {
+                    console.log("error")
+                }
+            }       
+        }
+        else {
+            return false;
+        }       
+        return true;
+    }   
+
+    function displayContents(txt) {
+      var addType = "type= csv\n"
+        $('#input').val(addType + txt);
+    }   
+
          function loadData(n){
              var input = encodeURIComponent($('#input').val());
              var req = new XMLHttpRequest();
@@ -43,12 +94,16 @@ value-sheep= 600, 400, 1000, 800, 1200, 1000
                  if (req.readyState == 4 && req.status == 200) {
                  var jsonObj = req.responseText;
                  plot(req.responseText, n);
+                 console.log(req.responseText)
                  }
               }
          }
          
          function plot(inputData, n) {
+          
          var modDataObj = JSON.parse(inputData);
+
+
          var modData = [];
          var chartType
          if(n==0){
@@ -72,8 +127,8 @@ value-sheep= 600, 400, 1000, 800, 1200, 1000
                  } else if(n==7) {
                   chartType = 'scatter'
                  }
-          console.log(chartType)
-         
+          
+           if(chartType!="csv"){
            modDataObj['results'].forEach(function(d, i) {
              var item = [d.param];
              d.val.forEach(function(j) {
@@ -81,11 +136,25 @@ value-sheep= 600, 400, 1000, 800, 1200, 1000
              });
              modData.push(item);
            });
-           var chart = c3.generate({
+         } else {
+          modData = inputData
+         }
+
+
+           if(chartType=="csv"){
+            var chart = c3.generate({
+             data: {
+               rows: modData, type: chartType,
+             }
+           });
+           } else {
+            var chart = c3.generate({
              data: {
                columns: modData, type: chartType,
              }
            });
+           }
+           
          
          }
          

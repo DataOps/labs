@@ -2,6 +2,7 @@ package parser
 
 import grails.converters.JSON
 import groovy.json.JsonBuilder
+import liquibase.util.csv.CSVReader
 
 class ParseController {
 
@@ -16,10 +17,14 @@ class ParseController {
 		String values = ""
 		String name = ""
 		String fullData = ""
+		Boolean jump = false
+		String[] arr
 
 		while(scnr.hasNextLine()){
 			currentLine = scnr.nextLine().toLowerCase()
 
+
+			//todo: dont iterate through all lines to check the chartType
 			if(currentLine.contains("barchart") || currentLine.contains("bar") ){
 				chartType = "bar"
 			} else if(currentLine.contains("piechart") || currentLine.contains("pie")){
@@ -34,19 +39,45 @@ class ParseController {
 				chartType = "donut"
 			} else if(currentLine.contains("scatter")){
 				chartType = "scatter"
+			} else if(currentLine.contains("csv")){
+				chartType = "csv"
+				print "must jump"
+				jump = true
 			}
+			print jump
+			print chartType
 
-			if(currentLine.substring(0,5).equals("value")){
+
+			if(currentLine.substring(0,5).equals("value") && !jump){
 				name = currentLine.substring(6, currentLine.lastIndexOf('='))
 				values = currentLine.substring(currentLine.lastIndexOf('=')+2)
 				arrTypes.add(currentLine.substring(6, currentLine.lastIndexOf('=')));
 				fullData += "{ \"" + "param" + "\": " + "\"" + name + "\", " + "\"val\":"+  "["  + values + "] } ,"
 			}
+
+			if(jump){
+				arr = currentLine.split(",");
+				if(!currentLine.contains("csv")){
+
+					fullData += arr.toString() + ","
+
+				}
+			}
+
 		}
 
-		fullData = fullData.substring(0,fullData.length()-1)
-		def fullData2 = "{\"results\": [ " + fullData + " ]," + " \"chartType\": \"" + chartType + "\" }" 
+		if(!chartType.equals("csv")){
+			fullData = fullData.substring(0,fullData.length()-1)
+		}
+
+		print fullData
+		def fullData2 = "{\"results\": [ " + fullData + " ]," + " \"chartType\": \"" + chartType + "\" }"
+		if(chartType.equals("csv")){
+			render(fullData as String)
+			
+		} else {
 		render(fullData2 as String)
-		
+		}
+
 	}
 }
